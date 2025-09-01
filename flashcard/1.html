@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Flashcard Quiz App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f7fafc;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            margin-top: 50px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px #dbeafe;
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        .flashcard {
+            background: #e0e7ff;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            padding: 30px 20px;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: background 0.2s;
+        }
+        
+        .controls,
+        .edit-controls {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        button {
+            background: #6366f1;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        button:hover:not(:disabled) {
+            background: #4338ca;
+        }
+        
+        input,
+        textarea {
+            border-radius: 4px;
+            border: 1px solid #c7d2fe;
+            font-size: 1rem;
+            margin-bottom: 8px;
+            padding: 6px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .edit-controls button,
+        .add-controls button {
+            background: #f59e42;
+        }
+        
+        .edit-controls button.delete {
+            background: #e11d48;
+        }
+        
+        .edit-controls button.delete:hover {
+            background: #be123c;
+        }
+        
+        .index {
+            text-align: center;
+            color: #6366f1;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="flashcard" id="flashcard">
+            <!-- Content will be inserted here -->
+        </div>
+        <div class="index" id="indexDisplay"></div>
+        <div class="controls">
+            <button id="prevBtn">Previous</button>
+            <button id="showAnswerBtn">Show Answer</button>
+            <button id="nextBtn">Next</button>
+        </div>
+        <div class="edit-controls">
+            <button id="editBtn">Edit</button>
+            <button class="delete" id="deleteBtn">Delete</button>
+        </div>
+        <form id="addForm">
+            <h4>Add New Flashcard</h4>
+            <input type="text" id="newQuestion" placeholder="Enter Question" required>
+            <textarea id="newAnswer" placeholder="Enter Answer" required></textarea>
+            <div class="add-controls">
+                <button type="submit">Add Card</button>
+            </div>
+        </form>
+        <form id="editForm" style="display:none;">
+            <h4>Edit Flashcard</h4>
+            <input type="text" id="editQuestion" required>
+            <textarea id="editAnswer" required></textarea>
+            <div class="edit-controls">
+                <button id="saveEditBtn" type="submit">Save</button>
+                <button id="cancelEditBtn" type="button">Cancel</button>
+            </div>
+        </form>
+    </div>
+    <script>
+        // Flashcard Data (initial)
+        let flashcards = [{
+            question: "What is the capital of France?",
+            answer: "Paris"
+        }, {
+            question: "Who wrote 'To Kill a Mockingbird'?",
+            answer: "Harper Lee"
+        }, {
+            question: "What is 2 + 2?",
+            answer: "4"
+        }, {
+            question: "What is the largest planet in our solar system?",
+            answer: "Jupiter"
+        }, {
+            question: "What is the boiling point of water?",
+            answer: "100°C (212°F)"
+        }, ];
+        let current = 0;
+        let showingAnswer = false;
+        let editing = false;
+
+        const flashcardDiv = document.getElementById('flashcard');
+        const showAnswerBtn = document.getElementById('showAnswerBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const indexDisplay = document.getElementById('indexDisplay');
+        const editBtn = document.getElementById('editBtn');
+        const deleteBtn = document.getElementById('deleteBtn');
+        const addForm = document.getElementById('addForm');
+        const newQuestion = document.getElementById('newQuestion');
+        const newAnswer = document.getElementById('newAnswer');
+        const editForm = document.getElementById('editForm');
+        const editQuestion = document.getElementById('editQuestion');
+        const editAnswer = document.getElementById('editAnswer');
+        const saveEditBtn = document.getElementById('saveEditBtn');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+        function displayCard() {
+            if (flashcards.length === 0) {
+                flashcardDiv.innerHTML = "<em>No flashcards. Please add a new one.</em>";
+                indexDisplay.textContent = "";
+                showAnswerBtn.disabled = true;
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+                editBtn.disabled = true;
+                deleteBtn.disabled = true;
+                return;
+            }
+            showAnswerBtn.disabled = false;
+            prevBtn.disabled = current === 0;
+            nextBtn.disabled = current === flashcards.length - 1;
+            editBtn.disabled = false;
+            deleteBtn.disabled = false;
+            const card = flashcards[current];
+            flashcardDiv.innerHTML = showingAnswer ?
+                `<strong>Answer:</strong><br>${card.answer}` :
+                `<strong>Question:</strong><br>${card.question}`;
+            showAnswerBtn.textContent = showingAnswer ? "Show Question" : "Show Answer";
+            indexDisplay.textContent = `Flashcard ${current + 1} of ${flashcards.length}`;
+        }
+
+        showAnswerBtn.onclick = () => {
+            showingAnswer = !showingAnswer;
+            displayCard();
+        };
+
+        prevBtn.onclick = () => {
+            if (current > 0) current--;
+            showingAnswer = false;
+            displayCard();
+        };
+
+        nextBtn.onclick = () => {
+            if (current < flashcards.length - 1) current++;
+            showingAnswer = false;
+            displayCard();
+        };
+
+        addForm.onsubmit = function(e) {
+            e.preventDefault();
+            flashcards.push({
+                question: newQuestion.value.trim(),
+                answer: newAnswer.value.trim()
+            });
+            newQuestion.value = "";
+            newAnswer.value = "";
+            current = flashcards.length - 1;
+            showingAnswer = false;
+            displayCard();
+        };
+
+        editBtn.onclick = () => {
+            if (flashcards.length === 0) return;
+            editing = true;
+            editForm.style.display = "";
+            addForm.style.display = "none";
+            editQuestion.value = flashcards[current].question;
+            editAnswer.value = flashcards[current].answer;
+        };
+
+        saveEditBtn.onclick = function(e) {
+            e.preventDefault();
+            flashcards[current].question = editQuestion.value.trim();
+            flashcards[current].answer = editAnswer.value.trim();
+            editing = false;
+            editForm.style.display = "none";
+            addForm.style.display = "";
+            showingAnswer = false;
+            displayCard();
+        };
+
+        cancelEditBtn.onclick = function() {
+            editing = false;
+            editForm.style.display = "none";
+            addForm.style.display = "";
+        };
+
+        deleteBtn.onclick = () => {
+            if (flashcards.length === 0) return;
+            flashcards.splice(current, 1);
+            if (current > 0) current--;
+            showingAnswer = false;
+            displayCard();
+        };
+
+        // Initialize
+        displayCard();
+    </script>
+</body>
+
+</html>
